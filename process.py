@@ -15,7 +15,7 @@ save_video_path = "./video"
 class Process:
     video_source = 0
 
-    def __init(self):
+    def __init__(self):
         self.save_flag = False
         self.sendtext = False
         self.text_sent_timeout = time.time()
