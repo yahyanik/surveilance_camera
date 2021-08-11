@@ -22,6 +22,7 @@ class Process:
         self.saving_timeout = time.time()
         self.video_writter = None
         self.garbage = False
+        self.frame = None
 
         if os.environ.get('OPENCV_CAMERA_SOURCE'):
             self.set_video_source(int(os.environ['OPENCV_CAMERA_SOURCE']))
@@ -51,6 +52,7 @@ class Process:
 
             # read current frame
             _, img = camera.read()
+            self.frame = img
             tok = time.time()
 
             if self.save_flag:
