@@ -137,3 +137,8 @@ class Process:
 
                 except:
                     print(f"file: {file} not deleted")
+
+
+if __name__ == "__main__":
+    p = Process()
+    p.get_frames_always()
