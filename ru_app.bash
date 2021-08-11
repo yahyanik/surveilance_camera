@@ -2,5 +2,5 @@
 
 source ./env/bin/activate
 
-python ./run.py
+python ./app.py
 python ./process.py
