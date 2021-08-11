@@ -2,7 +2,7 @@ import os
 import cv2
 from base_camera import BaseCamera
 import time
-
+from process import Process
 
 class Camera(BaseCamera):
     video_source = 0
@@ -18,13 +18,19 @@ class Camera(BaseCamera):
 
     @staticmethod
     def frames():
-        camera = cv2.VideoCapture(Camera.video_source)
-        if not camera.isOpened():
-            raise RuntimeError('Could not start camera.')
+        p = Process()
+        if p.frame is None:
+            camera = cv2.VideoCapture(Camera.video_source)
+            if not camera.isOpened():
+                raise RuntimeError('Could not start camera.')
+
 
         while True:
             # read current frame
-            _, img = camera.read()
+            if p.frame is None:
+                _, img = camera.read()
+            else:
+                img = p.frame
 
             # encode as a jpeg image and return it
             yield cv2.imencode('.jpg', img)[1].tobytes()
