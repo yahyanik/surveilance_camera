@@ -2,8 +2,6 @@
 from importlib import import_module
 import os
 from flask import Flask, render_template, Response
-import threading
-from process import Process
 
 # import camera driver
 if os.environ.get('CAMERA'):
@@ -15,10 +13,6 @@ else:
 # from camera_pi import Camera
 
 # run the process on the backend
-
-p = Process()
-download_thread = threading.Thread(target=p.get_frames_always())
-download_thread.start()
 
 
 app = Flask(__name__)
