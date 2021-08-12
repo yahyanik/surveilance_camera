@@ -23,6 +23,7 @@ class Process:
         self.video_writter = None
         self.garbage = False
         self.frame = None
+        self.sent = False
 
         if os.environ.get('OPENCV_CAMERA_SOURCE'):
             self.set_video_source(int(os.environ['OPENCV_CAMERA_SOURCE']))
@@ -30,49 +31,40 @@ class Process:
     def set_video_source(self, source):
         self.video_source = source
 
-    def get_frames_always(self):
+    def get_frames_always(self, img):
         """
         get the frames from camera regardless of the streaming
         """
         self.net = cv2.dnn.readNetFromCaffe(prototxt, model)
 
-        camera = cv2.VideoCapture(self.video_source)
-        if not camera.isOpened():
-            raise RuntimeError('Could not start camera.')
+        # check to delete videos at 12:00 am
+        t = datetime.datetime.now()
+        if t.hour == 0 and t.minute == 0 and t.second == 0 and self.garbage:
+            self.garbage = False
+            self.gorbeg_video_delete()
 
-        while True:
-            # check to delete videos at 12:00 am
-            t = datetime.datetime.now()
-            if t.hour == 0 and t.minute == 0 and t.second == 0 and self.garbage:
-                self.garbage = False
-                self.gorbeg_video_delete()
+        if t.hour == 1 and t.minute == 0 and t.second == 0:
+            self.garbage = True
 
-            if t.hour == 1 and t.minute == 0 and t.second == 0:
-                self.garbage = True
+        self.tok = time.time()
 
-            # read current frame
-            _, img = camera.read()
-            self.frame = img
-            tok = time.time()
+        if self.save_flag:
+            if time.time() - self.text_sent_timeout > 300:
+                self.save_flag = False
+                self.video_writter = None
 
-            if self.save_flag:
-                if time.time() - self.text_sent_timeout > 300:
-                    self.save_flag = False
-                    self.video_writter = None
+            self.save_video(img)
 
-                self.save_video(img)
-
-            # send img for processing
-            try:
-                if tok - tik > 3:
-                    self.process_frame(img)
-                    tik = time.time()
-
-            except Exception as e:
+        # send img for processing
+        try:
+            if self.tok - self.tik > 3:
                 self.process_frame(img)
-                print(e)
-                tik = time.time()
-                continue
+                self.tik = time.time()
+
+        except Exception as e:
+            self.process_frame(img)
+            print(e)
+            self.tik = time.time()
 
     def process_frame(self, frame):
         """
@@ -95,8 +87,11 @@ class Process:
                 cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), 2)
 
         # send the text
-            if tok - self.text_sent_timeout < 1800:
+            if tok - self.text_sent_timeout < 1800 and self.sent:
                 self.sendtext = False
+            elif tok - self.text_sent_timeout > 1800 and self.sent:
+                self.sent = False
+
 
             if self.sendtext:
                 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -109,6 +104,7 @@ class Process:
                        f'link for the live video when on the VPN: ' \
                        f'<a href="{s.getsockname()[0]}:5000">Click here to text us!</a>'
                 s.close()
+                self.sent = True
 
 
                 self.send_sms(text)
