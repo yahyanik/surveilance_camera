@@ -17,7 +17,7 @@ class Process:
 
     def __init__(self):
         self.save_flag = False
-        self.sendtext = False
+        self.sendtext = True
         self.text_sent_timeout = time.time()
         self.saving_timeout = time.time()
         self.video_writter = None
