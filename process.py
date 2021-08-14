@@ -8,7 +8,7 @@ import socket
 
 prototxt = "./MobileNetSSD_deploy.prototxt.txt"
 model = "./MobileNetSSD_deploy.caffemodel"
-confidence_thresh = 0.2
+confidence_thresh = 0.15
 save_video_path = "./video"
 
 
