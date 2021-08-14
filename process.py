@@ -47,7 +47,7 @@ class Process:
 
         self.tok = time.time()
 
-        if self.sendtext:
+        if self.save_flag:
             self.save_video(img)
 
         # send img for processing
