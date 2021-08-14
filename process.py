@@ -8,7 +8,7 @@ import socket
 
 prototxt = "./MobileNetSSD_deploy.prototxt.txt"
 model = "./MobileNetSSD_deploy.caffemodel"
-confidence_thresh = 0.2
+confidence_thresh = 0.15
 save_video_path = "./video"
 
 
@@ -48,10 +48,6 @@ class Process:
         self.tok = time.time()
 
         if self.save_flag:
-            if time.time() - self.text_sent_timeout > 300:
-                self.save_flag = False
-                self.video_writter = None
-
             self.save_video(img)
 
         # send img for processing
@@ -106,8 +102,10 @@ class Process:
                              10, (640, 480))
 
         # send the text
-        if tok - self.text_sent_timeout > 1800:
+        if tok - self.text_sent_timeout > 300:
             self.sendtext = True
+            self.save_flag = False
+            self.video_writter = None
 
     def send_sms(self, text):
         sms.send(payload=text)
