@@ -5,17 +5,21 @@ import numpy as np
 from sms import sms
 import datetime
 import socket
+import imutils
 
 prototxt = "./MobileNetSSD_deploy.prototxt.txt"
 model = "./MobileNetSSD_deploy.caffemodel"
 confidence_thresh = 0.15
-save_video_path = "./video"
+save_video_path = "./detection_video"
+motion_save_video_path = "./motion_video"
+
 
 
 class Process:
     video_source = 0
 
     def __init__(self):
+        self.first_frame = None
         self.save_flag = False
         self.sendtext = True
         self.text_sent_timeout = time.time()
@@ -23,6 +27,9 @@ class Process:
         self.video_writter = None
         self.garbage = False
         self.frame = None
+        self.net = cv2.dnn.readNetFromCaffe(prototxt, model)
+        self.motion_video_writter = None
+        self.save_motion_video = False
 
         if os.environ.get('OPENCV_CAMERA_SOURCE'):
             self.set_video_source(int(os.environ['OPENCV_CAMERA_SOURCE']))
@@ -34,7 +41,6 @@ class Process:
         """
         get the frames from camera regardless of the streaming
         """
-        self.net = cv2.dnn.readNetFromCaffe(prototxt, model)
 
         # check to delete videos at 12:00 am
         t = datetime.datetime.now()
@@ -49,6 +55,22 @@ class Process:
 
         if self.save_flag:
             self.save_video(img)
+
+        if self.motion_detection(img):
+            print(f"motion detected at time {self.tok}")
+            self.save_motion_video = True
+            video_name = f"motion-{str(datetime.datetime.now())}.avi"
+            self.motion_video_writter = cv2.VideoWriter(os.path.join(save_video_path, video_name),
+                                                 cv2.VideoWriter_fourcc(*'MJPG'),
+                                                 10, (640, 480))
+
+        else:
+            self.save_motion_video = False
+            self.motion_video_writter = None
+
+        if self.save_motion_video:
+            self.motion_save_video(img)
+
 
         # send img for processing
         try:
@@ -113,6 +135,8 @@ class Process:
     def save_video(self, img):
         self.video_writter.write(img)
 
+    def motion_save_video(self, img):
+        self.motion_video_writter.write(img)
 
     def gorbeg_video_delete(self):
         for file in os.listdir(save_video_path):
@@ -125,6 +149,35 @@ class Process:
 
                 except:
                     print(f"file: {file} not deleted")
+
+
+    def motion_detection(self, frame):
+        frame = imutils.resize(frame, width=500)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (21, 21), 0)
+
+        if self.first_frame is None:
+            self.firstFrame = gray
+            return False
+
+        frameDelta = cv2.absdiff(self.firstFrame, gray)
+        thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
+
+        thresh = cv2.dilate(thresh, None, iterations=2)
+        cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+                                cv2.CHAIN_APPROX_SIMPLE)
+        cnts = imutils.grab_contours(cnts)
+        for c in cnts:
+            # if the contour is too small, ignore it
+            if cv2.contourArea(c) < 500:
+                continue
+
+            (x, y, w, h) = cv2.boundingRect(c)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            return True
+
+        return False
+
 
 
 if __name__ == "__main__":
