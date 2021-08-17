@@ -62,7 +62,7 @@ class Process:
             video_name = f"motion-{str(datetime.datetime.now())}.avi"
             self.motion_video_writter = cv2.VideoWriter(os.path.join(save_video_path, video_name),
                                                  cv2.VideoWriter_fourcc(*'MJPG'),
-                                                 10, (640, 480))
+                                                 10, (480, 360))
 
         else:
             self.save_motion_video = False
@@ -121,7 +121,7 @@ class Process:
                     self.save_flag = True
                     self.video_writter = cv2.VideoWriter(os.path.join(save_video_path, video_name),
                              cv2.VideoWriter_fourcc(*'MJPG'),
-                             10, (640, 480))
+                             10, (480, 360))
 
         # send the text
         if tok - self.text_sent_timeout > 300:
@@ -150,17 +150,16 @@ class Process:
                 except:
                     print(f"file: {file} not deleted")
 
-
     def motion_detection(self, frame):
         frame = imutils.resize(frame, width=500)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
         if self.first_frame is None:
-            self.firstFrame = gray
+            self.first_frame = gray
             return False
 
-        frameDelta = cv2.absdiff(self.firstFrame, gray)
+        frameDelta = cv2.absdiff(self.first_frame, gray)
         thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
 
         thresh = cv2.dilate(thresh, None, iterations=2)
@@ -169,7 +168,7 @@ class Process:
         cnts = imutils.grab_contours(cnts)
         for c in cnts:
             # if the contour is too small, ignore it
-            if cv2.contourArea(c) < 500:
+            if cv2.contourArea(c) < 200:
                 continue
 
             (x, y, w, h) = cv2.boundingRect(c)
