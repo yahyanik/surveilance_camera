@@ -124,7 +124,7 @@ class Process:
                              10, (480, 360))
 
         # send the text
-        if tok - self.text_sent_timeout > 300:
+        if tok - self.text_sent_timeout > 120:
             self.sendtext = True
             self.save_flag = False
             self.video_writter = None
