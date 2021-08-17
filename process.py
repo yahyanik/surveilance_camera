@@ -19,6 +19,7 @@ class Process:
     video_source = 0
 
     def __init__(self):
+        self.backgrond_sub = cv2.createBackgroundSubtractorMOG2()
         self.first_frame = None
         self.save_flag = False
         self.sendtext = True
@@ -56,18 +57,19 @@ class Process:
         if self.save_flag:
             self.save_video(img)
 
-        if self.motion_detection(img):
+        if self.motion_detection(img) and self.motion_video_writter is None:
             print(f"motion detected at time {self.tok}")
             self.save_motion_video = True
-            video_name = f"motion-{str(datetime.datetime.now())}.avi"
-            self.motion_video_writter = cv2.VideoWriter(os.path.join(save_video_path, video_name),
+            video_name = f"{str(datetime.datetime.now())}.avi"
+            self.motion_video_writter = cv2.VideoWriter(os.path.join(motion_save_video_path, video_name),
                                                  cv2.VideoWriter_fourcc(*'MJPG'),
                                                  10, (480, 360))
 
-        else:
+        elif not self.motion_detection(img):
             self.save_motion_video = False
             self.motion_video_writter = None
-
+        
+        print(f"save motion is : {self.save_motion_video}")
         if self.save_motion_video:
             self.motion_save_video(img)
 
@@ -144,31 +146,48 @@ class Process:
                 save_time_str = file[:-4]
                 save_time = datetime.datetime.strptime(save_time_str, '%Y-%m-%d %H:%M:%S.%f')
                 try:
-                    if (datetime.datetime.now() - save_time).days > 7:
+                    if (datetime.datetime.now() - save_time).days > 3:
+                        print(f"file: {file} is older than 7 days and is deleted.")
+
+                except:
+                    print(f"file: {file} not deleted")
+                    
+        for file in os.listdir(motion_save_video_path):
+            if file.endswith(".avi"):
+                save_time_str = file[:-4]
+                save_time = datetime.datetime.strptime(save_time_str, '%Y-%m-%d %H:%M:%S.%f')
+                try:
+                    if (datetime.datetime.now() - save_time).days > 3:
                         print(f"file: {file} is older than 7 days and is deleted.")
 
                 except:
                     print(f"file: {file} not deleted")
 
     def motion_detection(self, frame):
-        frame = imutils.resize(frame, width=500)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # frame = imutils.resize(frame, width=500)
+        gray = imutils.resize(frame, width=400)
+        # gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
         if self.first_frame is None:
             self.first_frame = gray
             return False
 
-        frameDelta = cv2.absdiff(self.first_frame, gray)
-        thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
+        # frameDelta = cv2.absdiff(self.first_frame, gray)
+        # thresh = cv2.threshold(frameDelta, 25, 255, cv2.THRESH_BINARY)[1]
 
-        thresh = cv2.dilate(thresh, None, iterations=2)
-        cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
-                                cv2.CHAIN_APPROX_SIMPLE)
+        # thresh = cv2.dilate(thresh, None, iterations=2)
+        # cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+        #                        cv2.CHAIN_APPROX_SIMPLE)
+        fgmask = self.backgrond_sub.apply(gray)
+        _,thresh = cv2.threshold(fgmask,100,255,50)
+        cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        
         cnts = imutils.grab_contours(cnts)
         for c in cnts:
+            
             # if the contour is too small, ignore it
-            if cv2.contourArea(c) < 200:
+            if cv2.contourArea(c) < 50:
                 continue
 
             (x, y, w, h) = cv2.boundingRect(c)
