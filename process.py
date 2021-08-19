@@ -58,7 +58,6 @@ class Process:
             self.save_video(img)
 
         if self.motion_detection(img) and self.motion_video_writter is None:
-            print(f"motion detected at time {self.tok}")
             self.save_motion_video = True
             video_name = f"{str(datetime.datetime.now())}.avi"
             self.motion_video_writter = cv2.VideoWriter(os.path.join(motion_save_video_path, video_name),
