@@ -69,7 +69,6 @@ class Process:
             self.save_motion_video = False
             self.motion_video_writter = None
         
-        print(f"save motion is : {self.save_motion_video}")
         if self.save_motion_video:
             self.motion_save_video(img)
 
