@@ -38,9 +38,9 @@ class sms:
 
         email_msg = f"Subject: {sms.subject}\n To:{receiver_email}\n {payload}"
 
-        with smtplib.SMTP_SSL(sms.smtp_server, sms.smtp_port, context=ssl.create_default_context()) as email:
-            email.login(sender_email, email_password)
-            email.sendmail(sender_email, receiver_email, email_msg)
+        # with smtplib.SMTP_SSL(sms.smtp_server, sms.smtp_port, context=ssl.create_default_context()) as email:
+         #   email.login(sender_email, email_password)
+         #   email.sendmail(sender_email, receiver_email, email_msg)
 
         with smtplib.SMTP_SSL(sms.smtp_server, sms.smtp_port, context=ssl.create_default_context()) as email:
             email.login(sender_email, email_password)
