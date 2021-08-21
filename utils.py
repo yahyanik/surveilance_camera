@@ -5,6 +5,7 @@ from providers import PROVIDERS
 from configparser import ConfigParser
 import pathlib
 import os
+import datetime
 
 
 keyword = "email-credents" if os.name == 'nt' else "rasp-email-credents"
@@ -18,6 +19,32 @@ def get_config():
 
 
 config = get_config()
+
+
+def video_delete(HOW_MANY_DAYS_KEEP_VIDEO, save_video_path, motion_save_video_path):
+    for file in os.listdir(save_video_path):
+        if file.endswith(".avi"):
+            save_time_str = file[:-4]
+            save_time = datetime.datetime.strptime(save_time_str, '%Y-%m-%d %H:%M:%S.%f')
+            try:
+                if (datetime.datetime.now() - save_time).days > HOW_MANY_DAYS_KEEP_VIDEO:
+                    print(f"file: {file} is older than {HOW_MANY_DAYS_KEEP_VIDEO} days and is deleted.")
+                    os.remove(os.path.join(motion_save_video_path, file))
+
+            except Exception as e:
+                print(f"file: {file} in detection not deleted with error: {e}")
+
+    for file in os.listdir(motion_save_video_path):
+        if file.endswith(".avi"):
+            save_time_str = file[:-4]
+            save_time = datetime.datetime.strptime(save_time_str, '%Y-%m-%d %H:%M:%S.%f')
+            try:
+                if (datetime.datetime.now() - save_time).days > HOW_MANY_DAYS_KEEP_VIDEO:
+                    print(f"file: {file} is older than {HOW_MANY_DAYS_KEEP_VIDEO} days and is deleted.")
+                    os.remove(os.path.join(motion_save_video_path, file))
+
+            except Exception as e:
+                print(f"file: {file} in motion not deleted with error: {e}")
 
 
 class sms:

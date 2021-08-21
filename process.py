@@ -1,24 +1,25 @@
-import os
 import cv2
 import time
 import numpy as np
-from sms import sms
-import datetime
 import socket
 import imutils
+from utils import *
 
 prototxt = "./MobileNetSSD_deploy.prototxt.txt"
 model = "./MobileNetSSD_deploy.caffemodel"
 confidence_thresh = 0.15
 save_video_path = "./detection_video"
 motion_save_video_path = "./motion_video"
+HOW_MANY_DAYS_KEEP_VIDEO = 3
 
 
 
 class Process:
     video_source = 0
 
-    def __init__(self):
+    def __init__(self, args):
+        self.args = args
+
         self.backgrond_sub = cv2.createBackgroundSubtractorMOG2()
         self.first_frame = None
         self.save_flag = False
@@ -34,9 +35,6 @@ class Process:
 
         if os.environ.get('OPENCV_CAMERA_SOURCE'):
             self.set_video_source(int(os.environ['OPENCV_CAMERA_SOURCE']))
-
-    def set_video_source(self, source):
-        self.video_source = source
 
     def get_frames_always(self, img):
         """
@@ -57,7 +55,8 @@ class Process:
         if self.save_flag:
             self.save_video(img)
 
-        if self.motion_detection(img) and self.motion_video_writter is None:
+        video_name = None
+        if self.motion_detection(img) and self.motion_video_writter is None and self.args["save"] == 1:
             self.save_motion_video = True
             video_name = f"{str(datetime.datetime.now())}.avi"
             self.motion_video_writter = cv2.VideoWriter(os.path.join(motion_save_video_path, video_name),
@@ -66,6 +65,12 @@ class Process:
 
         elif not self.motion_detection(img):
             self.save_motion_video = False
+            if (self.motion_video_writter is not None) and (video_name is not None):
+                size_video = os.stat(os.path.join(motion_save_video_path, video_name)).st_size
+                if size_video < 1000000:
+                    os.remove(os.path.join(motion_save_video_path, video_name))
+
+
             self.motion_video_writter = None
         
         if self.save_motion_video:
@@ -85,7 +90,7 @@ class Process:
 
     def process_frame(self, frame):
         """
-        run the processing to detect any humans in the frame
+        run the processing to detect any humans in the frame using Mobilebet SSD on caffe
         """
         tok = time.time()
         (h, w) = frame.shape[:2]
@@ -102,6 +107,7 @@ class Process:
                 cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), 2)
 
                 if self.sendtext:
+
                     self.text_sent_timeout = time.time()
                     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     s.connect(("8.8.8.8", 80))
@@ -118,10 +124,11 @@ class Process:
                     self.sendtext = False
 
                     # save 2 mins of video
-                    self.save_flag = True
-                    self.video_writter = cv2.VideoWriter(os.path.join(save_video_path, video_name),
-                             cv2.VideoWriter_fourcc(*'MJPG'),
-                             10, (480, 360))
+                    if self.args["save"] == 1:
+                        self.save_flag = True
+                        self.video_writter = cv2.VideoWriter(os.path.join(save_video_path, video_name),
+                                 cv2.VideoWriter_fourcc(*'MJPG'),
+                                 10, (480, 360))
 
         # send the text
         if tok - self.text_sent_timeout > 120:
@@ -130,7 +137,8 @@ class Process:
             self.video_writter = None
 
     def send_sms(self, text):
-        sms.send(payload=text)
+        if self.args["sms"]:
+            sms.send(payload=text)
 
     def save_video(self, img):
         self.video_writter.write(img)
@@ -139,27 +147,7 @@ class Process:
         self.motion_video_writter.write(img)
 
     def gorbeg_video_delete(self):
-        for file in os.listdir(save_video_path):
-            if file.endswith(".avi"):
-                save_time_str = file[:-4]
-                save_time = datetime.datetime.strptime(save_time_str, '%Y-%m-%d %H:%M:%S.%f')
-                try:
-                    if (datetime.datetime.now() - save_time).days > 3:
-                        print(f"file: {file} is older than 7 days and is deleted.")
-
-                except:
-                    print(f"file: {file} not deleted")
-                    
-        for file in os.listdir(motion_save_video_path):
-            if file.endswith(".avi"):
-                save_time_str = file[:-4]
-                save_time = datetime.datetime.strptime(save_time_str, '%Y-%m-%d %H:%M:%S.%f')
-                try:
-                    if (datetime.datetime.now() - save_time).days > 3:
-                        print(f"file: {file} is older than 7 days and is deleted.")
-
-                except:
-                    print(f"file: {file} not deleted")
+        video_delete(HOW_MANY_DAYS_KEEP_VIDEO, save_video_path, motion_save_video_path)
 
     def motion_detection(self, frame):
         # frame = imutils.resize(frame, width=500)
@@ -178,18 +166,18 @@ class Process:
         # cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
         #                        cv2.CHAIN_APPROX_SIMPLE)
         fgmask = self.backgrond_sub.apply(gray)
-        _,thresh = cv2.threshold(fgmask,100,255,50)
-        cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+        _, thresh = cv2.threshold(fgmask, 105, 255, 50)
+        cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
         cnts = imutils.grab_contours(cnts)
         for c in cnts:
             
             # if the contour is too small, ignore it
-            if cv2.contourArea(c) < 50:
+            if cv2.contourArea(c) < 400:
                 continue
 
             (x, y, w, h) = cv2.boundingRect(c)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
             return True
 
         return False

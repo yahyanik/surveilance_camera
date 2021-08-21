@@ -5,8 +5,10 @@ from process import Process
 
 class Camera(BaseCamera):
     video_source = 0
+    args = None
 
-    def __init__(self):
+    def __init__(self, args):
+        self.args = args
         if os.environ.get('OPENCV_CAMERA_SOURCE'):
             Camera.set_video_source(int(os.environ['OPENCV_CAMERA_SOURCE']))
         super(Camera, self).__init__()
@@ -20,7 +22,7 @@ class Camera(BaseCamera):
         camera = cv2.VideoCapture(Camera.video_source)
         if not camera.isOpened():
             raise RuntimeError('Could not start camera.')
-        p = Process()
+        p = Process(Camera.args)
 
 
         while True:
