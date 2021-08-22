@@ -14,4 +14,4 @@ else
     source ./env/bin/activate
 fi
 
-python ./app.py --sms 1 --save 1 & chromium-browser 192.168.1.126:8111
+python ./app.py --sms 1 --save 1 & python ./keep_alive.py

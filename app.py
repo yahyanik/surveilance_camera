@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from importlib import import_module
 import os
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, Response, make_response
 import argparse
 
 # import camera driver
@@ -9,6 +9,7 @@ if os.environ.get('CAMERA'):
     Camera = import_module('camera_' + os.environ['CAMERA']).Camera
 else:
     from camera_opencv import Camera
+
 
 # Raspberry Pi camera module (requires picamera package)
 # from camera_pi import Camera
@@ -45,6 +46,13 @@ def gen(camera):
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 
+def text_gen(camera):
+    """sending ok while keeping process alive."""
+    while True:
+        _ = camera.get_frame()
+        yield "ok"
+
+
 @app.route('/video_feed')
 def video_feed():
     """Video streaming route. Put this in the src attribute of an img tag."""
@@ -52,6 +60,12 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-if __name__ == '__main__':
+@app.route('/stay_alive')
+def stay_alive():
+    """sending minimal payload and keeping the process alive"""
+    return Response(text_gen(Camera(arguments())),
+                    mimetype='text/xml')
 
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8111, threaded=True)
