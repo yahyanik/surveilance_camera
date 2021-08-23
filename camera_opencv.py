@@ -8,7 +8,7 @@ class Camera(BaseCamera):
     args = None
 
     def __init__(self, args):
-        self.args = args
+        Camera.set_args(args)
         if os.environ.get('OPENCV_CAMERA_SOURCE'):
             Camera.set_video_source(int(os.environ['OPENCV_CAMERA_SOURCE']))
         super(Camera, self).__init__()
@@ -16,6 +16,10 @@ class Camera(BaseCamera):
     @staticmethod
     def set_video_source(source):
         Camera.video_source = source
+
+    @staticmethod
+    def set_args(args):
+        Camera.args = args
 
     @staticmethod
     def frames():
@@ -32,5 +36,3 @@ class Camera(BaseCamera):
 
             # encode as a jpeg image and return it
             yield cv2.imencode('.jpg', img)[1].tobytes()
-
-
