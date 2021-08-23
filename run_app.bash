@@ -14,4 +14,4 @@ else
     source ./env/bin/activate
 fi
 
-python ./app.py --sms 1 --save 1 & python ./keep_alive.py
+python ./app.py --sms 1 --save 1 --detection 1 --nightsave 1 & python ./keep_alive.py
