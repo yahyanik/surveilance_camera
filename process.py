@@ -19,6 +19,8 @@ class Process:
 
     def __init__(self, args):
         self.args = args
+        if self.args["save"] == 1:
+            self.args["nightsave"] = 0
 
         self.backgrond_sub = cv2.createBackgroundSubtractorMOG2()
         self.first_frame = None
@@ -32,9 +34,7 @@ class Process:
         self.net = cv2.dnn.readNetFromCaffe(prototxt, model)
         self.motion_video_writter = None
         self.save_motion_video = False
-
-        if os.environ.get('OPENCV_CAMERA_SOURCE'):
-            self.set_video_source(int(os.environ['OPENCV_CAMERA_SOURCE']))
+        self.motion_video_name = ""
 
     def get_frames_always(self, img):
         """
@@ -43,48 +43,50 @@ class Process:
 
         # check to delete videos at 12:00 am
         t = datetime.datetime.now()
-        if t.hour == 0 and t.minute == 0 and t.second == 0 and self.garbage:
-            self.garbage = False
+        if t.hour == 0 and t.minute == 0 and 0 < t.second < 2:
             self.gorbeg_video_delete()
-
-        if t.hour == 1 and t.minute == 0 and t.second == 0:
-            self.garbage = True
 
         self.tok = time.time()
 
         if self.save_flag:
             self.save_video(img)
 
-        video_name = None
+        if self.args["nightsave"] == 1:
+            if t.hour < 8 or t.hour > 23:
+                self.args["save"] = 1
+            else:
+                self.args["save"] = 0
+
+
         if self.motion_detection(img) and self.motion_video_writter is None and self.args["save"] == 1:
             self.save_motion_video = True
-            video_name = f"{str(datetime.datetime.now())}.avi"
-            self.motion_video_writter = cv2.VideoWriter(os.path.join(motion_save_video_path, video_name),
+            self.motion_video_name = f"{str(datetime.datetime.now())}.avi"
+            self.motion_video_writter = cv2.VideoWriter(os.path.join(motion_save_video_path, self.motion_video_name),
                                                  cv2.VideoWriter_fourcc(*'MJPG'),
-                                                 10, (480, 360))
+                                                 10, (640, 480))
 
         elif not self.motion_detection(img):
             self.save_motion_video = False
-            if (self.motion_video_writter is not None) and (video_name is not None):
-                size_video = os.stat(os.path.join(motion_save_video_path, video_name)).st_size
+            if self.motion_video_name != "":
+                size_video = os.stat(os.path.join(motion_save_video_path, self.motion_video_name)).st_size
                 if size_video < 1000000:
-                    os.remove(os.path.join(motion_save_video_path, video_name))
-
-
+                    os.remove(os.path.join(motion_save_video_path, self.motion_video_name))
+                    print("deleted small motion video")
             self.motion_video_writter = None
+            self.motion_video_name = ""
         
         if self.save_motion_video:
             self.motion_save_video(img)
 
-
         # send img for processing
         try:
-            if self.tok - self.tik > 3:
+            if (self.tok - self.tik > 3) and (self.args["detection"] == 1):
                 self.process_frame(img)
                 self.tik = time.time()
 
         except Exception as e:
-            self.process_frame(img)
+            if self.args["detection"] == 1:
+                self.process_frame(img)
             print(e)
             self.tik = time.time()
 
@@ -105,30 +107,28 @@ class Process:
                 (startX, startY, endX, endY) = box.astype("int")
 
                 cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), 2)
+                video_name = f"{str(datetime.datetime.now())}.avi"
 
                 if self.sendtext:
-
                     self.text_sent_timeout = time.time()
                     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     s.connect(("8.8.8.8", 80))
                     print(s.getsockname()[0])
-                    video_name = f"{str(datetime.datetime.now())}.avi"
                     text = f'Camera activity: person detected.' \
                            f'time is {datetime.datetime.now()}' \
                            f'check feed at video: {video_name}.' \
                            f'link for the live video when on the VPN: ' \
                            f'<a href="{s.getsockname()[0]}:5000">Click here to text us!</a>'
                     s.close()
-
                     self.send_sms(text)
                     self.sendtext = False
 
-                    # save 2 mins of video
-                    if self.args["save"] == 1:
-                        self.save_flag = True
-                        self.video_writter = cv2.VideoWriter(os.path.join(save_video_path, video_name),
-                                 cv2.VideoWriter_fourcc(*'MJPG'),
-                                 10, (480, 360))
+                # save 2 mins of video
+                if self.args["save"] == 1:
+                    self.save_flag = True
+                    self.video_writter = cv2.VideoWriter(os.path.join(save_video_path, video_name),
+                             cv2.VideoWriter_fourcc(*'MJPG'),
+                             10, (640, 480))
 
         # send the text
         if tok - self.text_sent_timeout > 120:
