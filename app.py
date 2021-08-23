@@ -25,7 +25,12 @@ def arguments():
     ap.add_argument("--sms", type=int,
                     default=1,
                     help="have 0 not to send emails and texts when objects are detected, 1 for them to be sent.")
-
+    ap.add_argument("--detection", type=int,
+                    default=1,
+                    help="have 0 not to use deep learning for human detection and 1 to do so.")
+    ap.add_argument("--nightsave", type=int,
+                    default=1,
+                    help="It should be 1 if you want to save videos at night but not during the day, 0 otherwise.")
     return vars(ap.parse_args())
 
 
@@ -49,8 +54,8 @@ def gen(camera):
 def text_gen(camera):
     """sending ok while keeping process alive."""
     while True:
-        _ = camera.get_frame()
-        yield "ok"
+        f = camera.get_frame()
+        yield "ok", f
 
 
 @app.route('/video_feed')
@@ -63,7 +68,7 @@ def video_feed():
 @app.route('/stay_alive')
 def stay_alive():
     """sending minimal payload and keeping the process alive"""
-    return Response(text_gen(Camera(arguments())),
+    return Response(text_gen(Camera(arguments())[0]),
                     mimetype='text/xml')
 
 
