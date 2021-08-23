@@ -54,8 +54,8 @@ def gen(camera):
 def text_gen(camera):
     """sending ok while keeping process alive."""
     while True:
-        f = camera.get_frame()
-        yield "ok", f
+        _ = camera.get_frame()
+        yield "ok"
 
 
 @app.route('/video_feed')
@@ -68,7 +68,7 @@ def video_feed():
 @app.route('/stay_alive')
 def stay_alive():
     """sending minimal payload and keeping the process alive"""
-    return Response(text_gen(Camera(arguments())[0]),
+    return Response(text_gen(Camera(arguments())),
                     mimetype='text/xml')
 
 
