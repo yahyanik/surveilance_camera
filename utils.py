@@ -49,7 +49,7 @@ def video_delete(HOW_MANY_DAYS_KEEP_VIDEO, save_video_path, motion_save_video_pa
 
 class sms:
 
-    numbers = ["6074442611"]
+    numbers = ["604442611"]
     provider = "google"
     sender_credentials = config[keyword].get("email"), config[keyword].get("password")
     receiver_email_addrs = config[keyword].get("receiver_email_addrs")
