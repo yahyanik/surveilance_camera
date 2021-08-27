@@ -151,6 +151,7 @@ class Process:
 
     def motion_detection(self, frame):
         # frame = imutils.resize(frame, width=500)
+        (h, w) = frame.shape[:2]
         gray = imutils.resize(frame, width=400)
         # gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
@@ -177,11 +178,12 @@ class Process:
                 continue
 
             (x, y, w, h) = cv2.boundingRect(c)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            box = [x, y, (x + w), (y + h)] * np.array([w, h, w, h])
+            (startX, startY, endX, endY) = box.astype("int")
+            cv2.rectangle(frame, (startX, startY), (endX, endY), (255, 0, 0), 2)
             return True
 
         return False
-
 
 
 if __name__ == "__main__":
