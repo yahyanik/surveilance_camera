@@ -29,7 +29,7 @@ def video_delete(HOW_MANY_DAYS_KEEP_VIDEO, save_video_path, motion_save_video_pa
             try:
                 if (datetime.datetime.now() - save_time).days > HOW_MANY_DAYS_KEEP_VIDEO:
                     print(f"file: {file} is older than {HOW_MANY_DAYS_KEEP_VIDEO} days and is deleted.")
-                    os.remove(os.path.join(motion_save_video_path, file))
+                    os.remove(os.path.join(save_video_path, file))
 
             except Exception as e:
                 print(f"file: {file} in detection not deleted with error: {e}")
