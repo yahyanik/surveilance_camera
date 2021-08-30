@@ -12,8 +12,7 @@ while True:
     try:
         _ = requests.get(url, stream=True)
     except:
-        text = f'Camera activity: Camera not reachable.' \
-                           f'time is {datetime.datetime.now()}' \
+        text = f'Camera activity: Camera not reachable. time is {datetime.datetime.now()}' 
         sms.send(payload=text)
         
     time.sleep(10)
