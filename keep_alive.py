@@ -14,6 +14,6 @@ while True:
     except:
         text = f'Camera activity: Camera not reachable.' \
                            f'time is {datetime.datetime.now()}' \
-        sms.send(text)
+        sms.send(payload=text)
         
     time.sleep(10)
