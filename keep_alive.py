@@ -14,5 +14,7 @@ while True:
     except:
         text = f'Camera activity: Camera not reachable. time is {datetime.datetime.now()}' 
         sms.send(payload=text)
+        print(text)
+        break 
         
     time.sleep(10)
