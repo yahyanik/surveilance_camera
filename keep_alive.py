@@ -1,7 +1,7 @@
 
 import requests
 import time
-from utils import sms
+from utils import *
 import datetime
 
 url = "localhost:8111/stay_alive"
