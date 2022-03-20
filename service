@@ -1,0 +1,16 @@
+# to be placed at /etc/systemd/system
+
+[Unit]
+Description=hit service
+After=network-online.target
+
+[Service]
+ExecStart=sudo /home/pi/Desktop/surveilance_camera/run_app.bash
+User=pi
+WorkingDirectory=/home/pi/Desktop/surveilance_camera
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+#run systemctl daemon-reload then systemctl start hit and then check status with systemctl status hit and then systemctl enable hit
